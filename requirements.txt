@@ -8,6 +8,7 @@ requests
 # dev support
 rope
 pylint
+pytest
 
 # notification
 # TBU
