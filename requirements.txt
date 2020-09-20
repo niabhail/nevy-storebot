@@ -1,0 +1,13 @@
+#
+## Requirements - Nevy Storebot
+#
+
+# core
+requests
+
+# dev support
+rope
+pylint
+
+# notification
+# TBU

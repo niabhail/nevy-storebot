@@ -1,13 +1,12 @@
-import logging
-import logging.config
-import webbrowser
-from http import client
-from optparse import Values
-
 import requests
 from requests.adapters import HTTPAdapter
 from requests.exceptions import HTTPError
 from urllib3.util.retry import Retry
+
+from utils.logger import log
+from utils.products import NVIDIA_PRODUCT_LOOKUP
+from utils.http import DEFAULT_HEADERS
+
 
 ## Nvidia Store - Backend Service >> Digital River (US, UK), DIHouse (RU), Rashi (IN)
 # https://docs.digitalriver.com/commerce-api/ 
@@ -30,26 +29,8 @@ NV_STORE_FETCH_INVENTORY = "https://in-and-ru-store-api.uk-e1.cloudhub.io/DR/get
 NV_STORE_SESSION_TOKEN   = "https://store.nvidia.com/store/nvidia/SessionToken"
 NV_ADD_TO_CART           = "ttps://store.nvidia.com/store/nvidia/{locale}}/buy/productID.{pid}/clearCart.yes/nextPage.QuickBuyCartPage"
 
-## configure logger 
-logging.config.fileConfig('logger.conf')
-log = logging.getLogger(__name__)
 
-## request headers 
-HEADERS = {
-    'format'    : 'json',
-    'Accept'    : 'application/json',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36 Edg/85.0.564.51'
-}
-
-## Scan Product List
-PRODUCT_LOOKUP = {
-    'TestUnit'   : '***FOR MONITORING ONLY*** NVIDIA Test Product - GB',
-    'RTX3080'    : 'NVIDIA GEFORCE RTX 3080',
-    'RTX3080-GB' : 'NVIDIA GEFORCE RTX 3080 - GB',
-    'RTX2080S'   : 'NVIDIA GEFORCE RTX 2080 SUPER'
-}
-
-class NvidiaStoreClient:
+class NvidiaStore:
     locale = 'en_GB'
     currency = 'GBP'
     target_products = None
@@ -100,14 +81,14 @@ class NvidiaStoreClient:
         }
 
         try:
-            resp = self.http.get(uri, headers=HEADERS, params=data)
+            resp = self.http.get(uri, headers=DEFAULT_HEADERS, params=data)
                
             jresp = resp.json()
             log.debug('Response: %s -  %s' % (resp.status_code, jresp))
 
             ## process the data, scan for the required SKUs and mine the product ids 
             for product in jresp['products']['product']:
-                if product['displayName'] in PRODUCT_LOOKUP.values():
+                if product['displayName'] in NVIDIA_PRODUCT_LOOKUP.values():
                     self.target_products[str(product['id'])] = {
                         'pid' : product['id'],
                         'name' : product['displayName'],
@@ -195,7 +176,7 @@ class NvidiaStoreClient:
         }
 
         try:
-            resp = self.http.get(NV_STORE_SESSION_TOKEN, headers=HEADERS, params=data)
+            resp = self.http.get(NV_STORE_SESSION_TOKEN, headers=DEFAULT_HEADERS, params=data)
             jresp = resp.json()
             log.debug('Response: %s -  %s' % (resp.status_code, jresp))
 
@@ -211,7 +192,7 @@ class NvidiaStoreClient:
 
 ## Test Client
 if __name__ == "__main__":
-    store = NvidiaStoreClient('en_GB', 'GBP')
+    store = NvidiaStore('en_GB', 'GBP')
 
     # get scanned products 
     target_products = store.get_target_product_ids()
